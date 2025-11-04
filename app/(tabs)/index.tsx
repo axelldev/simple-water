@@ -1,98 +1,188 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { FloatingButton } from "@/components/floating-button";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { WaterBottle } from "@/components/water-bottle";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const STORAGE_KEYS = {
+  CURRENT_INTAKE: "@water_current_intake",
+  MAX_INTAKE: "@water_max_intake",
+  INTAKE_AMOUNT: "@water_intake_amount",
+  LAST_DATE: "@water_last_date",
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  const [currentIntake, setCurrentIntake] = useState(0);
+  const [maxIntake, setMaxIntake] = useState(2000); // Default 2000ml (2 liters)
+  const [intakeAmount, setIntakeAmount] = useState(250); // Default 250ml per press
+
+  // Load saved data on mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Save data whenever it changes
+  useEffect(() => {
+    saveData();
+  }, [currentIntake, maxIntake, intakeAmount]);
+
+  const loadData = async () => {
+    try {
+      const [savedIntake, savedMaxIntake, savedIntakeAmount, savedDate] =
+        await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.CURRENT_INTAKE),
+          AsyncStorage.getItem(STORAGE_KEYS.MAX_INTAKE),
+          AsyncStorage.getItem(STORAGE_KEYS.INTAKE_AMOUNT),
+          AsyncStorage.getItem(STORAGE_KEYS.LAST_DATE),
+        ]);
+
+      // Reset intake if it's a new day
+      const today = new Date().toDateString();
+      if (savedDate !== today) {
+        setCurrentIntake(0);
+        await AsyncStorage.setItem(STORAGE_KEYS.LAST_DATE, today);
+      } else if (savedIntake) {
+        setCurrentIntake(parseInt(savedIntake, 10));
+      }
+
+      if (savedMaxIntake) setMaxIntake(parseInt(savedMaxIntake, 10));
+      if (savedIntakeAmount) setIntakeAmount(parseInt(savedIntakeAmount, 10));
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
+  };
+
+  const saveData = async () => {
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(
+          STORAGE_KEYS.CURRENT_INTAKE,
+          currentIntake.toString()
+        ),
+        AsyncStorage.setItem(STORAGE_KEYS.MAX_INTAKE, maxIntake.toString()),
+        AsyncStorage.setItem(
+          STORAGE_KEYS.INTAKE_AMOUNT,
+          intakeAmount.toString()
+        ),
+      ]);
+    } catch (error) {
+      console.error("Error saving data:", error);
+    }
+  };
+
+  const handleAddWater = () => {
+    const newIntake = currentIntake + intakeAmount;
+
+    if (newIntake > maxIntake) {
+      Alert.alert(
+        "Goal Reached! 🎉",
+        `You've reached your daily water intake goal of ${maxIntake}ml!`,
+        [
+          {
+            text: "OK",
+            onPress: () => setCurrentIntake(maxIntake),
+          },
+        ]
+      );
+    } else {
+      setCurrentIntake(newIntake);
+
+      // Show congratulations when goal is reached
+      if (newIntake === maxIntake) {
+        Alert.alert(
+          "Congratulations! 🎉",
+          `You've completed your daily water intake goal!`
+        );
+      }
+    }
+  };
+
+  const handleReset = async () => {
+    Alert.alert(
+      "Reset Water Intake",
+      "Are you sure you want to reset your water intake for today?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: () => setCurrentIntake(0),
+        },
+      ]
+    );
+  };
+
+  return (
+    <ThemedView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.title}>
+          Water Tracker
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        <ThemedText style={styles.subtitle}>
+          Stay hydrated, stay healthy!
         </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      <View style={styles.bottleContainer}>
+        <WaterBottle currentIntake={currentIntake} maxIntake={maxIntake} />
+      </View>
+
+      <View style={styles.infoContainer}>
+        <ThemedText
+          style={[styles.resetText, { color: colors.tint }]}
+          onPress={handleReset}
+        >
+          Reset Today&apos;s Intake
+        </ThemedText>
+      </View>
+
+      <FloatingButton onPress={handleAddWater} />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    paddingVertical: 20,
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 32,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  bottleContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoContainer: {
+    alignItems: "center",
+    gap: 12,
+  },
+  infoText: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  resetText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
