@@ -38,7 +38,7 @@ export function FloatingButton({ onPress }: FloatingButtonProps) {
       onPress={handlePress}
       activeOpacity={0.9}
     >
-      <Text style={styles.plusIcon}>+</Text>
+      <Text style={[styles.plusIcon, { color: colors.background }]}>+</Text>
     </AnimatedTouchable>
   );
 }
@@ -46,8 +46,8 @@ export function FloatingButton({ onPress }: FloatingButtonProps) {
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
-    bottom: 40,
-    right: 30,
+    bottom: 20,
+    right: 20,
     width: 70,
     height: 70,
     borderRadius: 35,

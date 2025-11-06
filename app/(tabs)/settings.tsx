@@ -164,7 +164,11 @@ export default function ExploreScreen() {
           onPress={saveSettings}
           activeOpacity={0.8}
         >
-          <ThemedText style={styles.saveButtonText}>Save Settings</ThemedText>
+          <ThemedText
+            style={[styles.saveButtonText, { color: colors.background }]}
+          >
+            Save Settings
+          </ThemedText>
         </TouchableOpacity>
 
         <View style={styles.presetsSection}>

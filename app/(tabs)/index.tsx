@@ -5,7 +5,8 @@ import { WaterBottle } from "@/components/water-bottle";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 
 const STORAGE_KEYS = {
@@ -20,18 +21,8 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? "light"];
 
   const [currentIntake, setCurrentIntake] = useState(0);
-  const [maxIntake, setMaxIntake] = useState(2000); // Default 2000ml (2 liters)
-  const [intakeAmount, setIntakeAmount] = useState(250); // Default 250ml per press
-
-  // Load saved data on mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Save data whenever it changes
-  useEffect(() => {
-    saveData();
-  }, [currentIntake, maxIntake, intakeAmount]);
+  const [maxIntake, setMaxIntake] = useState(2000);
+  const [intakeAmount, setIntakeAmount] = useState(250);
 
   const loadData = async () => {
     try {
@@ -59,7 +50,11 @@ export default function HomeScreen() {
     }
   };
 
-  const saveData = async () => {
+  useFocusEffect(() => {
+    loadData();
+  });
+
+  const saveData = useCallback(async () => {
     try {
       await Promise.all([
         AsyncStorage.setItem(
@@ -75,7 +70,11 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error saving data:", error);
     }
-  };
+  }, [currentIntake, intakeAmount, maxIntake]);
+
+  useEffect(() => {
+    saveData();
+  }, [currentIntake, maxIntake, intakeAmount, saveData]);
 
   const handleAddWater = () => {
     const newIntake = currentIntake + intakeAmount;
@@ -153,7 +152,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   header: {
     paddingTop: 60,
