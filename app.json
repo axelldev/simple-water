@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.anonymous.simple-water"
+      "bundleIdentifier": "com.axelldev.simplewater"
     },
     "android": {
       "adaptiveIcon": {

@@ -18,7 +18,10 @@ export function WaterBottle({ currentIntake, maxIntake }: WaterBottleProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const fillPercentage = (currentIntake / maxIntake) * 100;
+  const fillPercentage = Math.min(
+    100,
+    Math.max(0, (currentIntake / maxIntake) * 100)
+  );
   const animatedHeight = useSharedValue(0);
 
   useEffect(() => {
