@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const STORAGE_KEYS = {
   MAX_INTAKE: "@water_max_intake",
@@ -21,6 +22,7 @@ const STORAGE_KEYS = {
 export default function ExploreScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const insets = useSafeAreaInsets();
 
   const [maxIntake, setMaxIntake] = useState("2000");
   const [intakeAmount, setIntakeAmount] = useState("250");
@@ -110,7 +112,7 @@ export default function ExploreScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <ThemedView style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <ThemedText type="title" style={styles.title}>
             Settings
           </ThemedText>
@@ -280,7 +282,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 30,
     alignItems: "center",
