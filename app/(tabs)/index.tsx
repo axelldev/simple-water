@@ -2,19 +2,13 @@ import { FloatingButton } from "@/components/floating-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { WaterBottle } from "@/components/water-bottle";
+import { STORAGE_KEYS } from "@/config/storage";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-
-const STORAGE_KEYS = {
-  CURRENT_INTAKE: "@water_current_intake",
-  MAX_INTAKE: "@water_max_intake",
-  INTAKE_AMOUNT: "@water_intake_amount",
-  LAST_DATE: "@water_last_date",
-};
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();

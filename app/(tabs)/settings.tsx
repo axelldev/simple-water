@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { STORAGE_KEYS } from "@/config/storage";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,11 +14,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const STORAGE_KEYS = {
-  MAX_INTAKE: "@water_max_intake",
-  INTAKE_AMOUNT: "@water_intake_amount",
-};
 
 export default function ExploreScreen() {
   const colorScheme = useColorScheme();
