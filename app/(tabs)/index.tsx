@@ -5,9 +5,14 @@ import { WaterBottle } from "@/components/water-bottle";
 import { STORAGE_KEYS } from "@/config/storage";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  checkAndResetIntakeIfNewDay,
+  getWaterIntake,
+  saveIntake,
+} from "@/utils/intake";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
@@ -20,23 +25,14 @@ export default function HomeScreen() {
 
   const loadData = async () => {
     try {
-      const [savedIntake, savedMaxIntake, savedIntakeAmount, savedDate] =
-        await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.CURRENT_INTAKE),
-          AsyncStorage.getItem(STORAGE_KEYS.MAX_INTAKE),
-          AsyncStorage.getItem(STORAGE_KEYS.INTAKE_AMOUNT),
-          AsyncStorage.getItem(STORAGE_KEYS.LAST_DATE),
-        ]);
+      await checkAndResetIntakeIfNewDay();
+      const savedIntake = await getWaterIntake();
+      const [savedMaxIntake, savedIntakeAmount] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.MAX_INTAKE),
+        AsyncStorage.getItem(STORAGE_KEYS.INTAKE_AMOUNT),
+      ]);
 
-      // Reset intake if it's a new day
-      const today = new Date().toDateString();
-      if (savedDate !== today) {
-        setCurrentIntake(0);
-        await AsyncStorage.setItem(STORAGE_KEYS.LAST_DATE, today);
-      } else if (savedIntake) {
-        setCurrentIntake(parseInt(savedIntake, 10));
-      }
-
+      setCurrentIntake(savedIntake);
       if (savedMaxIntake) setMaxIntake(parseInt(savedMaxIntake, 10));
       if (savedIntakeAmount) setIntakeAmount(parseInt(savedIntakeAmount, 10));
     } catch (error) {
@@ -48,31 +44,10 @@ export default function HomeScreen() {
     loadData();
   });
 
-  const saveData = useCallback(async () => {
-    try {
-      await Promise.all([
-        AsyncStorage.setItem(
-          STORAGE_KEYS.CURRENT_INTAKE,
-          currentIntake.toString()
-        ),
-        AsyncStorage.setItem(STORAGE_KEYS.MAX_INTAKE, maxIntake.toString()),
-        AsyncStorage.setItem(
-          STORAGE_KEYS.INTAKE_AMOUNT,
-          intakeAmount.toString()
-        ),
-      ]);
-    } catch (error) {
-      console.error("Error saving data:", error);
-    }
-  }, [currentIntake, intakeAmount, maxIntake]);
-
-  useEffect(() => {
-    saveData();
-  }, [currentIntake, maxIntake, intakeAmount, saveData]);
-
   const handleAddWater = () => {
     const newIntake = currentIntake + intakeAmount;
 
+    saveIntake(newIntake);
     if (newIntake > maxIntake) {
       Alert.alert(
         "Goal Reached! 🎉",
