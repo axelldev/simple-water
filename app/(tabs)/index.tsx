@@ -47,29 +47,15 @@ export default function HomeScreen() {
   const handleAddWater = () => {
     const newIntake = currentIntake + intakeAmount;
 
-    saveIntake(newIntake);
-    if (newIntake > maxIntake) {
+    if (currentIntake < maxIntake && newIntake >= maxIntake) {
       Alert.alert(
         "Goal Reached! 🎉",
-        `You've reached your daily water intake goal of ${maxIntake}ml!`,
-        [
-          {
-            text: "OK",
-            onPress: () => setCurrentIntake(maxIntake),
-          },
-        ]
+        `You've reached your daily water intake goal of ${maxIntake}ml!`
       );
-    } else {
-      setCurrentIntake(newIntake);
-
-      // Show congratulations when goal is reached
-      if (newIntake === maxIntake) {
-        Alert.alert(
-          "Congratulations! 🎉",
-          `You've completed your daily water intake goal!`
-        );
-      }
     }
+
+    saveIntake(newIntake);
+    setCurrentIntake(newIntake);
   };
 
   const handleReset = async () => {
@@ -81,7 +67,10 @@ export default function HomeScreen() {
         {
           text: "Reset",
           style: "destructive",
-          onPress: () => setCurrentIntake(0),
+          onPress: () => {
+            saveIntake(0);
+            setCurrentIntake(0);
+          },
         },
       ]
     );

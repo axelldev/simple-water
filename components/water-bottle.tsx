@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     position: "relative",
     backgroundColor: "#f0f0f0",
     borderRadius: 17,
+    overflow: "hidden",
   },
   waterFill: {
     position: "absolute",
