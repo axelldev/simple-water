@@ -3,12 +3,20 @@ import { ThemedView } from "@/components/themed-view";
 import { STORAGE_KEYS } from "@/config/storage";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  requestNotificationsPermission,
+  scheduleNotificationInterval,
+  TIME_INTERVAL_SECONS,
+} from "@/utils/notifications";
+import { getRemindersStatus, setRemindersStatus } from "@/utils/reminders";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
@@ -22,8 +30,12 @@ export default function ExploreScreen() {
 
   const [maxIntake, setMaxIntake] = useState("2000");
   const [intakeAmount, setIntakeAmount] = useState("250");
+  const [allowsReminders, setAllowsReminders] = useState(false);
 
   useEffect(() => {
+    getRemindersStatus().then((status) =>
+      setAllowsReminders(status === "allowed")
+    );
     loadSettings();
   }, []);
 
@@ -101,6 +113,28 @@ export default function ExploreScreen() {
     } catch (error) {
       console.error("Error applying preset:", error);
     }
+  };
+
+  const handleRemoveReminders = async () => {
+    await setRemindersStatus("denied");
+    setAllowsReminders(false);
+  };
+
+  const handleSetReminders = async (value: boolean) => {
+    if (!value) {
+      await handleRemoveReminders();
+      return;
+    }
+    const status = await requestNotificationsPermission();
+    await setRemindersStatus(
+      status === Notifications.PermissionStatus.GRANTED ? "allowed" : "denied"
+    );
+    await scheduleNotificationInterval(
+      "It's time to drink water!",
+      "Don't forget to drink water!",
+      TIME_INTERVAL_SECONS.EVERY_HOUR
+    );
+    setAllowsReminders(true);
   };
 
   return (
@@ -240,6 +274,19 @@ export default function ExploreScreen() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Notifications
+          </ThemedText>
+          <View style={styles.notificationSection}>
+            <ThemedText style={styles.notificationTitle}>Reminders</ThemedText>
+            <Switch
+              value={allowsReminders}
+              onValueChange={handleSetReminders}
+            />
+          </View>
+        </View>
+
         <View style={styles.infoSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             💧 Hydration Tips
@@ -363,6 +410,14 @@ const styles = StyleSheet.create({
   infoSection: {
     paddingHorizontal: 20,
     marginBottom: 40,
+  },
+  notificationSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  notificationTitle: {
+    fontSize: 16,
   },
   tipItem: {
     marginBottom: 8,
