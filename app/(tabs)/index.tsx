@@ -45,7 +45,7 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const status = requestNotificationsPermission();
+    requestNotificationsPermission();
   }, []);
 
   useFocusEffect(() => {

@@ -3,17 +3,23 @@ import { ThemedView } from "@/components/themed-view";
 import { STORAGE_KEYS } from "@/config/storage";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useNotifications } from "@/hooks/use-notifications";
 import {
+  cancelAllNotifications,
+  getCurrentNotificationsPermission,
+  openNotificationSettings,
   requestNotificationsPermission,
   scheduleNotificationInterval,
-  TIME_INTERVAL_SECONS,
+  TIME_INTERVAL_SECONDS,
 } from "@/utils/notifications";
 import { getRemindersStatus, setRemindersStatus } from "@/utils/reminders";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
+  AppStateStatus,
   ScrollView,
   StyleSheet,
   Switch,
@@ -31,13 +37,66 @@ export default function ExploreScreen() {
   const [maxIntake, setMaxIntake] = useState("2000");
   const [intakeAmount, setIntakeAmount] = useState("250");
   const [allowsReminders, setAllowsReminders] = useState(false);
+  const appState = useRef(AppState.currentState);
+
+  const { refreshStatus } = useNotifications();
+
+  const disableReminders = useCallback(async () => {
+    await cancelAllNotifications();
+    await setRemindersStatus("denied");
+    setAllowsReminders(false);
+  }, []);
+
+  // Sync reminders state with actual system permission when app becomes active
+  const syncRemindersState = useCallback(async () => {
+    const [localStatus, systemStatus] = await Promise.all([
+      getRemindersStatus(),
+      getCurrentNotificationsPermission(),
+    ]);
+
+    // If user enabled reminders but system permission is now denied, disable reminders
+    if (
+      localStatus === "allowed" &&
+      systemStatus === Notifications.PermissionStatus.DENIED
+    ) {
+      await disableReminders();
+      return;
+    }
+
+    // If user enabled reminders and system permission is granted, ensure reminders are on
+    if (
+      localStatus === "allowed" &&
+      systemStatus === Notifications.PermissionStatus.GRANTED
+    ) {
+      setAllowsReminders(true);
+      return;
+    }
+
+    // Otherwise, just reflect the local stored status
+    setAllowsReminders(localStatus === "allowed");
+  }, [disableReminders]);
 
   useEffect(() => {
-    getRemindersStatus().then((status) =>
-      setAllowsReminders(status === "allowed")
-    );
+    syncRemindersState();
     loadSettings();
-  }, []);
+
+    // Listen for app state changes to sync when returning from Settings
+    const subscription = AppState.addEventListener(
+      "change",
+      (nextAppState: AppStateStatus) => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === "active"
+        ) {
+          syncRemindersState();
+          refreshStatus();
+        }
+        appState.current = nextAppState;
+      }
+    );
+
+    return () => subscription.remove();
+  }, [syncRemindersState, refreshStatus]);
 
   const loadSettings = async () => {
     try {
@@ -115,26 +174,63 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleRemoveReminders = async () => {
-    await setRemindersStatus("denied");
-    setAllowsReminders(false);
+  const enableReminders = async () => {
+    await scheduleNotificationInterval(
+      "Time to hydrate! 💧",
+      "Take a moment to drink some water and stay refreshed.",
+      TIME_INTERVAL_SECONDS.EVERY_HOUR
+    );
+    await setRemindersStatus("allowed");
+    setAllowsReminders(true);
   };
 
   const handleSetReminders = async (value: boolean) => {
+    // User is turning OFF reminders
     if (!value) {
-      await handleRemoveReminders();
+      await disableReminders();
       return;
     }
-    const status = await requestNotificationsPermission();
-    await setRemindersStatus(
-      status === Notifications.PermissionStatus.GRANTED ? "allowed" : "denied"
-    );
-    await scheduleNotificationInterval(
-      "It's time to drink water!",
-      "Don't forget to drink water!",
-      TIME_INTERVAL_SECONS.EVERY_HOUR
-    );
-    setAllowsReminders(true);
+
+    // User is turning ON reminders - check permission status
+    const currentStatus = await getCurrentNotificationsPermission();
+
+    switch (currentStatus) {
+      case Notifications.PermissionStatus.UNDETERMINED:
+        // First time - request permission
+        const newStatus = await requestNotificationsPermission();
+        await refreshStatus();
+
+        if (newStatus === Notifications.PermissionStatus.GRANTED) {
+          await enableReminders();
+        } else {
+          // User denied the permission request
+          Alert.alert(
+            "Notifications Disabled",
+            "You can enable notifications later in Settings if you change your mind."
+          );
+        }
+        break;
+
+      case Notifications.PermissionStatus.GRANTED:
+        // Already have permission - just enable reminders
+        await enableReminders();
+        break;
+
+      case Notifications.PermissionStatus.DENIED:
+        // Permission was previously denied - guide user to Settings
+        Alert.alert(
+          "Enable Notifications",
+          "To receive water reminders, please enable notifications for this app in your device settings.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: openNotificationSettings,
+            },
+          ]
+        );
+        break;
+    }
   };
 
   return (
