@@ -9,8 +9,7 @@ import {
   getCurrentNotificationsPermission,
   openNotificationSettings,
   requestNotificationsPermission,
-  scheduleNotificationInterval,
-  TIME_INTERVAL_SECONDS,
+  scheduleHourlyReminders,
 } from "@/utils/notifications";
 import { getRemindersStatus, setRemindersStatus } from "@/utils/reminders";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -175,11 +174,7 @@ export default function ExploreScreen() {
   };
 
   const enableReminders = async () => {
-    await scheduleNotificationInterval(
-      "Time to hydrate! 💧",
-      "Take a moment to drink some water and stay refreshed.",
-      TIME_INTERVAL_SECONDS.EVERY_HOUR
-    );
+    await scheduleHourlyReminders();
     await setRemindersStatus("allowed");
     setAllowsReminders(true);
   };

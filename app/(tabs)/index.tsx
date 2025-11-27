@@ -10,14 +10,11 @@ import {
   getWaterIntake,
   saveIntake,
 } from "@/utils/intake";
-import {
-  requestNotificationsPermission,
-  scheduleNotificationInterval,
-} from "@/utils/notifications";
+import { requestNotificationsPermission } from "@/utils/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
@@ -108,11 +105,6 @@ export default function HomeScreen() {
         >
           Reset Today&apos;s Intake
         </ThemedText>
-        <Pressable
-          onPress={() => scheduleNotificationInterval("Test", "Test", 5)}
-        >
-          <ThemedText>Schedule Notification</ThemedText>
-        </Pressable>
       </View>
 
       <FloatingButton onPress={handleAddWater} />
