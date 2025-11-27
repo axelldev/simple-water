@@ -9,7 +9,7 @@ import {
   getCurrentNotificationsPermission,
   openNotificationSettings,
   requestNotificationsPermission,
-  scheduleHourlyReminders,
+  scheduleDailyReminders,
 } from "@/utils/notifications";
 import { getRemindersStatus, setRemindersStatus } from "@/utils/reminders";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -174,7 +174,7 @@ export default function ExploreScreen() {
   };
 
   const enableReminders = async () => {
-    await scheduleHourlyReminders();
+    await scheduleDailyReminders();
     await setRemindersStatus("allowed");
     setAllowsReminders(true);
   };
